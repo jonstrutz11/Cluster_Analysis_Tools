@@ -8,14 +8,15 @@
 #
 # Example implementation:
 # python ./rank_and_plot_distmtx.py distmtx.txt ranked_centroids.txt
-#   centroids.fasta -title 'My Title Here' -rank 20
+#   centroids.fasta -title 'My Title Here' -rank 20 -show 10 -show_pdb True
+#   -cluster_file_dir "./cluster_files/"
 
 
 import argparse
 import numpy as np
 from sklearn.manifold import MDS
 import matplotlib.pyplot as plt
-import pandas as pd
+from Find_PDB_Clusters_SIFTS import *
 from get_size import get_size
 
 
@@ -23,6 +24,7 @@ from get_size import get_size
 def convert_distance_matrix(filename, num_seqs, out_matrix, in_size_dict):
     line_num = -1
     number = ''
+    print(in_size_dict)
     with open(filename, 'r') as inputfile:
         for line in inputfile:
             # Distance matrix text file generated via biopython only includes
@@ -30,11 +32,15 @@ def convert_distance_matrix(filename, num_seqs, out_matrix, in_size_dict):
             # have the same first 10 characters for their id (extremely
             # unlikely), then just manually change one of them temporarily.
             current_id = ''
-            current_id_frag = str(line[0:11]).strip()
+            char_index = 4
+            while line[char_index] != '|':
+                char_index += 1
+            current_id_frag = line[:char_index]
             for key in in_size_dict:
                 if current_id_frag in key:
                     current_id = key
             # Loop until all lines in distance matrix have been processed
+            print('Line Num: ', line_num, '\tnum_seqs: ', num_seqs)
             if line_num < num_seqs - 1:
                 line_num += 1
             else:
@@ -82,8 +88,8 @@ def get_max_cluster(in_size_dict):
     return max_cluster
 
 
-def get_ranked_list(in_table, number_picked_clusters, starting_cluster,
-                    size_weight):
+def get_ranked_list(in_table, number_picked_clusters, number_shown_clusters,
+                    starting_cluster, size_weight):
     # Generate ranked list of clusters
     current_cluster = starting_cluster
     ranked_list = []
@@ -100,6 +106,8 @@ def get_ranked_list(in_table, number_picked_clusters, starting_cluster,
         # distance to every other cluster that has been picked. Then,
         ranked_list.append(current_cluster)
         in_table.set_value(current_cluster, 'picked', True)
+        if i < number_shown_clusters:
+            in_table.set_value(current_cluster, 'show', True)
         for cluster in in_table.loc[~in_table['picked']].loc[:, 'id']:
             d = 0
             x1 = in_table.at[cluster, 'x']
@@ -115,6 +123,7 @@ def get_ranked_list(in_table, number_picked_clusters, starting_cluster,
                 score_max = cluster_score
                 current_cluster = cluster
         i += 1
+        print(i, 'out of', num_picked_clusters, 'read.')
     return ranked_list
 
 
@@ -132,6 +141,28 @@ def calc_pairwise_max_distance(in_table):
     return max_distance
 
 
+def get_pdb_id_dict(ranked_list, directory):
+    # Find cluster number for each id
+    cluster_file_dict = find_cluster_files(ranked_list,
+                                           directory)
+    mapping_df = pd.read_csv('uniprot_pdb.csv')
+    mapping_df = mapping_df.set_index('SP_PRIMARY')
+
+    PDB_id_dict = map_all(ranked_list, cluster_file_dict,
+                          mapping_df)
+    return PDB_id_dict
+
+
+def fill_in_pdb_info(in_table, PDB_id_dict):
+    pdb_list = []
+    for centroid_id in in_table['id']:
+        if centroid_id in PDB_id_dict:
+            pdb_list.append(PDB_id_dict[centroid_id])
+        else:
+            pdb_list.append(None)
+    in_table['PDB'] = pdb_list
+
+
 if __name__ == '__main__':
     # Parse command line arguments from stdin
     parser = argparse.ArgumentParser()
@@ -141,10 +172,10 @@ if __name__ == '__main__':
     parser.add_argument('outfile', nargs=1, type=str,
                         help='Must be a text file.')
     parser.add_argument('size_fasta', nargs=1, type=str,
-                        help='FASTA file used to generate distance matrix is '
-                             'needed to get size of each cluster. Must use '
-                             '-sizeout option with usearch to generate such a '
-                             'FASTA file.')
+                        help='Centroids FASTA file used to generate distance '
+                             'matrix is needed to get size of each cluster. '
+                             'Must use -sizeout option with usearch to '
+                             'generate such a FASTA file.')
     parser.add_argument('-title', nargs=1, type=str,
                         help='Title for plot - default is an empty string.')
     parser.add_argument('-rank', nargs=1, type=int,
@@ -155,6 +186,19 @@ if __name__ == '__main__':
                              'that seem to \"look\" the best tend to fall '
                              'between 0.2 and 0.5. If zero, only distance '
                              'will be used to determine ranking.')
+    parser.add_argument('-show', nargs=1, type=int,
+                        help='Number of clusters to label - default is all.')
+    parser.add_argument('-show_pdb', nargs=1, type=bool, default=False,
+                        help='If true, highlight clusters for which PDB '
+                             'structural information known for at least one '
+                             'sequence within that cluster (May take a '
+                             'while). Make sure to combine this with the '
+                             '-cluster_file_dir option.')
+    parser.add_argument('-cluster_file_dir', nargs=1, type=str,
+                        help='If you want to show PDB information on plot, '
+                             'make sure show_pdb is checked and provide the '
+                             'directory of all the cluster fasta files ('
+                             'generated in usearch via the -cluster option.)')
 
     args = parser.parse_args()
 
@@ -163,6 +207,7 @@ if __name__ == '__main__':
         # Get number of clusters by counting lines in script except last line
         # which starts with a tab
         num_clusters = 0
+        print('reading infile')
         for line in infile:
             if line[0] != '\t':
                 num_clusters += 1
@@ -189,8 +234,11 @@ if __name__ == '__main__':
     pos = transform_matrix(matrix)
 
     # Create pandas dataframe to easily view and manipulate the data as a table
-    data_dict = {'id': labels, 'size': size_list, 'x': pos[:, 0],
-                 'y': pos[:, 1], 'picked': [False for n in range(len(labels))]}
+    data_dict = {'id': labels, 'size': size_list, 'show': [False for n in
+                                                           range(len(labels))],
+                 'x': pos[:, 0], 'y': pos[:, 1], 'PDB': [None for n in range(
+                                                         len(labels))],
+                 'picked': [False for n in range(len(labels))]}
     table = pd.DataFrame(data_dict, index=labels)
 
     # Start our ranking at the largest cluster.
@@ -210,16 +258,42 @@ if __name__ == '__main__':
     else:
         cluster_size_weight = 0
 
+    if vars(args)['show']:
+        num_shown_clusters = vars(args)['show'][0]
+    else:
+        num_shown_clusters = 10
+
+    if vars(args)['show_pdb']:
+        show_pdb_info = True
+        try:
+            cluster_file_dir = vars(args)['cluster_file_dir'][0]
+        except TypeError:
+            raise Exception('If you want to show PDB information, you must '
+                            'also use -cluster_file_dir option.')
+    else:
+        show_pdb_info = False
+        cluster_file_dir = None
+
     # Generate ranked list from our table of cluster positions, the amount of
     #  clusters we would like to rank, and the starting cluster.
     ranked_list_centroids = get_ranked_list(table, num_picked_clusters,
-                                            largest_cluster,
+                                            num_shown_clusters, largest_cluster,
                                             cluster_size_weight)
+
+    # If desired, get PDB information (if any) and add to table
+    if show_pdb_info:
+        print('Extracting PDB information...')
+        pdb_id_dict = get_pdb_id_dict(table['id'], cluster_file_dir)
+        fill_in_pdb_info(table, pdb_id_dict)
 
     # Generate a list of colors based on which clusters were picked.
     color_list = ['' for i in range(num_clusters)]
     for i in range(num_clusters):
-        if table.iloc[i].loc['picked']:
+        if table.iloc[i].loc['PDB'] and table.iloc[i].loc['show']:
+            color_list[i] = 'magenta'
+        elif table.iloc[i].loc['PDB']:
+            color_list[i] = 'green'
+        elif table.iloc[i].loc['show']:
             color_list[i] = 'red'
         else:
             color_list[i] = 'blue'
@@ -230,7 +304,7 @@ if __name__ == '__main__':
     plt.scatter(pos[:, 0], pos[:, 1], size_list, alpha=0.7, c=color_list)
     try:
         plt.title(vars(args)['title'][0], fontsize=36)
-    except KeyError:
+    except TypeError:
         print('No plot title chosen. Add a title with the -title option.\n')
     plt.grid(True)
 
@@ -244,10 +318,22 @@ if __name__ == '__main__':
     # Add labels to plot
     for label, x, y in zip(labels, pos[:, 0], pos[:, 1]):
         # Only want labels for picked clusters
-        if table.iloc[labels.index(label)].loc['picked']:
-            plt.annotate(label, xy=(x, y), xytext=(-10, 10),
-                         textcoords='offset points', ha='right', va='bottom',
-                         bbox=dict(boxstyle='round,pad=0.5', fc='red',
+        if table.iloc[labels.index(label)].loc['show']:
+            if table.iloc[labels.index(label)].loc['PDB']:
+                plt.annotate(label, xy=(x, y), xytext=(10, 10),
+                             textcoords='offset points', ha='left', va='top',
+                             bbox=dict(boxstyle='round', pad=0.5, fc='magenta',
+                                       alpha=0.3))
+            else:
+                plt.annotate(label, xy=(x, y), xytext=(-10, 10),
+                             textcoords='offset points', ha='right',
+                             va='bottom', bbox=dict(boxstyle='round,pad=0.5',
+                                                    fc='red', alpha=0.3))
+        elif table.iloc[labels.index(label)].loc['PDB']:
+            plt.annotate(label, xy=(x, y),
+                         xytext=(10, 10), textcoords='offset points',
+                         ha='left', va='top',
+                         bbox=dict(boxstyle='round', pad=0.5, fc='green',
                                    alpha=0.3))
 
     # Generate ranked list text output file (to be used by find_reviewed.py)
@@ -255,5 +341,6 @@ if __name__ == '__main__':
         for item in ranked_list_centroids:
             outfile.write(item + '\n')
 
-    print(table)
+    print(table.head())
+
     plt.show()
