@@ -12,10 +12,10 @@
 #   -cluster_file_dir "./cluster_files/"
 
 
-import argparse
 import numpy as np
 from sklearn.manifold import MDS
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from Find_PDB_Clusters_SIFTS import *
 from get_size import get_size
 
@@ -172,10 +172,10 @@ if __name__ == '__main__':
     parser.add_argument('outfile', nargs=1, type=str,
                         help='Must be a text file.')
     parser.add_argument('size_fasta', nargs=1, type=str,
-                        help='Centroids FASTA file used to generate distance '
-                             'matrix is needed to get size of each cluster. '
-                             'Must use -sizeout option with usearch to '
-                             'generate such a FASTA file.')
+                        help='Centroids FASTA file used to generate '
+                             'alignment file is needed to get size of each '
+                             'cluster. Must use -sizeout option with usearch '
+                             'to generate such a FASTA file.')
     parser.add_argument('-title', nargs=1, type=str,
                         help='Title for plot - default is an empty string.')
     parser.add_argument('-rank', nargs=1, type=int,
@@ -335,6 +335,21 @@ if __name__ == '__main__':
                          ha='left', va='top',
                          bbox=dict(boxstyle='round', pad=0.5, fc='green',
                                    alpha=0.3))
+
+    # Add legend to plot
+    blue_patch = mpatches.Patch(color='blue', label='No PDB, not ranked in '
+                                                    'top ' +
+                                                    str(num_shown_clusters))
+    red_patch = mpatches.Patch(color='red', label='No PDB, ranked in top ' +
+                                                  str(num_shown_clusters))
+    green_patch = mpatches.Patch(color='green', label='PDB structure exists, '
+                                                      'not ranked in top ' +
+                                                      str(num_shown_clusters))
+    magenta_patch = mpatches.Patch(color='magenta',
+                                   label='PDB structure exists, and ranked '
+                                         'in top ' + str(num_shown_clusters))
+
+    plt.legend(handles=[blue_patch, red_patch, green_patch, magenta_patch])
 
     # Generate ranked list text output file (to be used by find_reviewed.py)
     with open(vars(args)['outfile'][0], 'w') as outfile:
