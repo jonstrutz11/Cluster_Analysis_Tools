@@ -2,6 +2,7 @@
 
 import pandas as pd
 from rdkit import Chem
+import argparse
 
 
 def substructure_match(smiles_string, patt):
@@ -25,11 +26,18 @@ def add_matches(df):
 
 
 if __name__ == '__main__':
-    compound_filepath = 'C:\\Users\Jon\PycharmProjects\Plus1Pathway' \
-                        '\Hydroxyacid Enzyme ' \
-                        'Discovery\Predicted_Compound_List.tsv '
+    # Argument parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('compound_list_dir', nargs=1, type=str)
+    parser.add_argument('predicted_reactions_tsv_dir', nargs=1, type=str)
+    parser.add_argument('pattern', nargs=1, type=str,
+                        help='SMARTS string describing substructure to search '
+                             'for.')
+    args = parser.parse_args()
+
+    compound_filepath = vars(args)['compound_list_dir'][0]
     compound_dataframe = pd.DataFrame.from_csv(compound_filepath, sep='\t')
-    pattern = '[#6h1](-[#6](=[#8])-[#8D1])(-[#8h1])(-[#6h2]-[#6h2])'
+    pattern = vars(args)['pattern'][0]
     compound_dataframe = add_matches(compound_dataframe)
     matches = 0
     num_rows = 0
@@ -41,8 +49,7 @@ if __name__ == '__main__':
             match_list.append(index)
             print(index, row['SMILES'])
     print('Matches:', matches, 'out of', num_rows, 'compounds')
-    reaction_filepath = 'C:\\Users\Jon\PycharmProjects\Plus1Pathway' \
-                        '\Hydroxyacid Enzyme Discovery\Predicted_Reactions.tsv'
+    reaction_filepath = vars(args)['predicted_reactions_tsv_dir'][0]
     starting_comps = ['C00109', 'C00902', 'C01989', 'C02123', 'C02488',
                       'C05994', 'C06255']
     reaction_dataframe = pd.DataFrame.from_csv(reaction_filepath, sep='\t')
