@@ -199,6 +199,12 @@ if __name__ == '__main__':
                              'make sure show_pdb is checked and provide the '
                              'directory of all the cluster fasta files ('
                              'generated in usearch via the -cluster option.)')
+    parser.add_argument('-circle_size_multiplier', nargs=1, type=float,
+                        default=1,
+                        help='Can increase or decrease circle size by putting '
+                             'in a multiplier - less than 1 decreases circle '
+                             'size and greater than 1 increases circle size '
+                             'proportionally.')
 
     args = parser.parse_args()
 
@@ -298,6 +304,12 @@ if __name__ == '__main__':
         else:
             color_list[i] = 'blue'
 
+    # Functionality to increase/decrease circle size
+    if vars(args)['circle_size_multiplier']:
+        circle_size_multiplier = float(vars(args)['circle_size_multiplier'][0])
+        for index, size in enumerate(size_list):
+            size_list[index] = circle_size_multiplier * size
+
     # Plot the clusters using x and y positions (pos) with circle sizes
     # taken from size_list and colors taken from color_list.
     plt.figure(figsize=(15, 15))
@@ -335,6 +347,10 @@ if __name__ == '__main__':
                          ha='left', va='top',
                          bbox=dict(boxstyle='round', pad=0.5, fc='green',
                                    alpha=0.3))
+
+    # Add axis labels
+    plt.xlabel('Relative Distance (arbitrary units)', size=20)
+    plt.ylabel('Relative Distance (arbitrary units)', size=20)
 
     # Add legend to plot
     blue_patch = mpatches.Patch(color='blue', label='No PDB, not ranked in '
