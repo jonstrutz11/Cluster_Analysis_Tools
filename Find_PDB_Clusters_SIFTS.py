@@ -15,7 +15,8 @@ def find_cluster_files(uniprot_id_list, cluster_file_directory):
         for file in os.listdir(cluster_file_directory):
             # Get filepath for each file
             file_path = os.path.join(cluster_file_directory, file)
-            with open(file_path, 'r') as current_cluster_infile:
+            with open(file_path, 'r', encoding='ISO-8859-1') as \
+                    current_cluster_infile:
                 for line in current_cluster_infile:
                     if line[0] == '>' and uniprot_id in line:
                         # Add path to cluster file that uniprot ID is in

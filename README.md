@@ -4,7 +4,14 @@ Tools to determine the best small subset of proteins to test for initial activit
 Cluster Analysis Pipeline Steps:
 1. Get a FASTA file with the set of sequences of interest (e.g. by searching for a group of proteins on uniprot and downloading a            FASTA file with all of them). It may be useful to filter this set of sequences by length as well (to prevent getting fragments, for        example).
 2. Use sequence_cleaner.py to remove duplicate sequences. This can also filter by a minimum length as well.
-3. Use usearch to cluster and get centroid sequences. I used the -cluster_fast method with an -id (sequence identity) of 0.7. Typical        ranges for this number are 0.7-0.99 depending on the application. Make sure to also set -sizeout so that the size of each cluster is      annotated. I also recommend setting a minimum cluster size via the -minsize option to reduce the number of very small clusters. Lastly,    make sure to generate a directory of fasta files for each cluster with the -fasta option (Should be of form cluster_number.fasta).
+3. Use usearch to cluster and get centroid sequences. I used the 
+-cluster_fast method with an -id (sequence identity) of 0.7. Typical        
+ranges for this number are 0.7-0.99 depending on the application. Make sure 
+to also set -sizeout so that the size of each cluster is      annotated. I 
+also recommend setting a minimum cluster size via the -minsize option to 
+reduce the number of very small clusters. Lastly,    make sure to generate a 
+directory of fasta files for each cluster with the -clusters option (Should be
+ of form cluster_number.fasta).
 4. Use a multiple alignment tool (e.g. MUSCLE) to generate a fasta alignment 
 file from the cluster centroids fasta file (calc_distmtx.py    is set to read
  fasta format).

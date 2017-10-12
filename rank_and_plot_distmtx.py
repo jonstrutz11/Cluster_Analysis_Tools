@@ -9,7 +9,7 @@
 # Example implementation:
 # python ./rank_and_plot_distmtx.py distmtx.txt ranked_centroids.txt
 #   centroids.fasta -title 'My Title Here' -rank 20 -show 10 -show_pdb True
-#   -cluster_file_dir "./cluster_files/"
+#   -cluster_file_dir "./cluster_files/" -circle_size_multiplier 10
 
 
 import numpy as np
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     plt.figure(figsize=(15, 15))
     plt.scatter(pos[:, 0], pos[:, 1], size_list, alpha=0.7, c=color_list)
     try:
-        plt.title(vars(args)['title'][0], fontsize=36)
+        plt.title(vars(args)['title'][0], fontsize=60)
     except TypeError:
         print('No plot title chosen. Add a title with the -title option.\n')
     plt.grid(True)
@@ -332,25 +332,25 @@ if __name__ == '__main__':
         # Only want labels for picked clusters
         if table.iloc[labels.index(label)].loc['show']:
             if table.iloc[labels.index(label)].loc['PDB']:
-                plt.annotate(label, xy=(x, y), xytext=(10, 10),
+                plt.annotate(label, xy=(x, y), xytext=(10, 10), fontsize=22,
                              textcoords='offset points', ha='left', va='top',
                              bbox=dict(boxstyle='round', pad=0.5, fc='magenta',
                                        alpha=0.3))
             else:
-                plt.annotate(label, xy=(x, y), xytext=(-10, 10),
+                plt.annotate(label, xy=(x, y), xytext=(-10, 10), fontsize=22,
                              textcoords='offset points', ha='right',
                              va='bottom', bbox=dict(boxstyle='round,pad=0.5',
                                                     fc='red', alpha=0.3))
         elif table.iloc[labels.index(label)].loc['PDB']:
             plt.annotate(label, xy=(x, y),
-                         xytext=(10, 10), textcoords='offset points',
-                         ha='left', va='top',
+                         xytext=(25, 25), textcoords='offset points',
+                         ha='left', va='top', fontsize=22,
                          bbox=dict(boxstyle='round', pad=0.5, fc='green',
                                    alpha=0.3))
 
     # Add axis labels
-    plt.xlabel('Relative Distance (arbitrary units)', size=20)
-    plt.ylabel('Relative Distance (arbitrary units)', size=20)
+    plt.xlabel('Relative Distance (arbitrary units)', size=50)
+    plt.ylabel('Relative Distance (arbitrary units)', size=50)
 
     # Add legend to plot
     blue_patch = mpatches.Patch(color='blue', label='No PDB, not ranked in '
@@ -365,7 +365,8 @@ if __name__ == '__main__':
                                    label='PDB structure exists, and ranked '
                                          'in top ' + str(num_shown_clusters))
 
-    plt.legend(handles=[blue_patch, red_patch, green_patch, magenta_patch])
+    plt.legend(handles=[blue_patch, red_patch, green_patch, magenta_patch],
+               fontsize=30)
 
     # Generate ranked list text output file (to be used by find_reviewed.py)
     with open(vars(args)['outfile'][0], 'w') as outfile:
