@@ -6,7 +6,6 @@
 import os
 import pandas as pd
 import argparse
-import shutil
 
 
 def find_cluster_files(uniprot_id_list, cluster_file_directory):
@@ -22,7 +21,7 @@ def find_cluster_files(uniprot_id_list, cluster_file_directory):
                         # Add path to cluster file that uniprot ID is in
                         id_clusterFile_dict[uniprot_id] = file_path
         if uniprot_id not in id_clusterFile_dict:
-            raise Exception("Error - cluster file not found for", uniprot_id)
+            print("Warning: cluster file not found for", uniprot_id)
     return id_clusterFile_dict
 
 

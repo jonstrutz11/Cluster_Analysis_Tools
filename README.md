@@ -28,4 +28,4 @@ that seem to work    well range between 0.1 and 0.4.
 8. Run find_PDB_clusters_SIFTS.py with reviewed ranked list as infile to find
  PDB structures (if any) for each cluster - make sure to designate an outfile
   as well.
-8. (optional) Generate FASTA file from output via Uniprot's ID Mapping Service.
+9. (optional) Generate FASTA file from output via Uniprot's ID Mapping Service.

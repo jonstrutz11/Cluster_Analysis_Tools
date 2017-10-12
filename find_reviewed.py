@@ -98,8 +98,8 @@ with open(vars(args)['outfile'][0], 'w') as outfile:
         outfile.write(centroid)
         # Second condition to make sure that the reviewed sequence id does
         # not match the centroid id.
-        if ranked_dict[centroid] in reviewed_dict and \
-                reviewed_dict[ranked_dict[centroid]] != ranked_dict[centroid]:
+        if centroid in ranked_dict and ranked_dict[centroid] in reviewed_dict \
+                and reviewed_dict[ranked_dict[centroid]] != ranked_dict[centroid]:
             outfile.write(',' + reviewed_dict[ranked_dict[centroid]] + '\n')
         else:
             outfile.write('\n')
