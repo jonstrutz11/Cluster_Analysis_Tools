@@ -171,6 +171,8 @@ if __name__ == '__main__':
                              'calculated with calc_distmtx.py).')
     parser.add_argument('outfile', nargs=1, type=str,
                         help='Must be a text file.')
+    parser.add_argument('fig_filepath', nargs=1, type=str,
+                        help='Filepath to output figure (.svg)')
     parser.add_argument('size_fasta', nargs=1, type=str,
                         help='Centroids FASTA file used to generate '
                              'alignment file is needed to get size of each '
@@ -375,4 +377,4 @@ if __name__ == '__main__':
 
     print(table.head())
 
-    plt.show()
+    plt.savefig(vars(args)['fig_filepath'][0])
